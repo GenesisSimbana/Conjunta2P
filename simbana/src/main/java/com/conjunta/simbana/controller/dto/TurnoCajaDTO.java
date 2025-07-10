@@ -47,11 +47,9 @@ public class TurnoCajaDTO {
     @Schema(description = "Versión del registro para control de concurrencia")
     private Long version;
 
-    // Constructor vacío
     public TurnoCajaDTO() {
     }
 
-    // Constructor con parámetros
     public TurnoCajaDTO(String codigoTurno, String codigoCaja, String codigoCajero, BigDecimal montoInicial) {
         this.codigoTurno = codigoTurno;
         this.codigoCaja = codigoCaja;
@@ -60,7 +58,6 @@ public class TurnoCajaDTO {
         this.estado = Enums.EstadoTurno.ABIERTO;
     }
 
-    // Getters y Setters
     public String getCodigoTurno() {
         return codigoTurno;
     }

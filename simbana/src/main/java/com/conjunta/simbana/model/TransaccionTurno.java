@@ -4,9 +4,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entidad que representa una transacción de turno de caja
- */
 @Entity
 @Table(name = "transacciones_turno", schema = "banquito")
 public class TransaccionTurno {
@@ -39,21 +36,17 @@ public class TransaccionTurno {
     @Column(name = "version")
     private Long version;
 
-    // Relación con TurnoCaja (hijo a padre)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "codigo_turno", referencedColumnName = "codigo_turno", insertable = false, updatable = false)
     private TurnoCaja turnoCaja;
 
-    // Constructor vacío
     public TransaccionTurno() {
     }
 
-    // Constructor con clave primaria
     public TransaccionTurno(Integer id) {
         this.id = id;
     }
 
-    // Getters y Setters
     public Integer getId() {
         return id;
     }
@@ -126,7 +119,6 @@ public class TransaccionTurno {
         this.turnoCaja = turnoCaja;
     }
 
-    // equals y hashCode solo con propiedades de clave primaria
     @Override
     public int hashCode() {
         final int prime = 31;

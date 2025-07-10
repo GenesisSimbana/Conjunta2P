@@ -1,40 +1,44 @@
 package com.conjunta.simbana.controller.mapper;
 
 import com.conjunta.simbana.controller.dto.DenominacionTurnoDto;
-import com.conjunta.simbana.model.DenominacionTurno;
+import com.conjunta.simbana.model.DenominacionTransaccion;
+import com.conjunta.simbana.model.Enums;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
+import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Mapper para convertir entre DenominacionTurno y DenominacionTurnoDto
- */
 @Mapper(componentModel = "spring")
 public interface DenominacionTurnoMapper {
     
     DenominacionTurnoMapper INSTANCE = Mappers.getMapper(DenominacionTurnoMapper.class);
     
-    /**
-     * Convierte DenominacionTurnoDto a DenominacionTurno
-     */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "billete", source = "denominacion")
+    @Mapping(target = "cantidadBilletes", source = "cantidad")
     @Mapping(target = "monto", expression = "java(denominacionTurnoDto.getDenominacion().multiply(java.math.BigDecimal.valueOf(denominacionTurnoDto.getCantidad())))")
-    DenominacionTurno toEntity(DenominacionTurnoDto denominacionTurnoDto);
+    @Mapping(target = "transaccionId", ignore = true)
+    @Mapping(target = "transaccionTurno", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    DenominacionTransaccion toEntity(DenominacionTurnoDto denominacionTurnoDto);
     
-    /**
-     * Convierte DenominacionTurno a DenominacionTurnoDto
-     */
-    DenominacionTurnoDto toDto(DenominacionTurno denominacionTurno);
+    @Mapping(target = "denominacion", source = "billete")
+    @Mapping(target = "cantidad", source = "cantidadBilletes")
+    DenominacionTurnoDto toDto(DenominacionTransaccion denominacionTurno);
     
-    /**
-     * Convierte lista de DenominacionTurnoDto a lista de DenominacionTurno
-     */
-    List<DenominacionTurno> toEntityList(List<DenominacionTurnoDto> denominacionTurnoDtoList);
+    List<DenominacionTransaccion> toEntityList(List<DenominacionTurnoDto> denominacionTurnoDtoList);
     
-    /**
-     * Convierte lista de DenominacionTurno a lista de DenominacionTurnoDto
-     */
-    List<DenominacionTurnoDto> toDtoList(List<DenominacionTurno> denominacionTurnoList);
+    List<DenominacionTurnoDto> toDtoList(List<DenominacionTransaccion> denominacionTurnoList);
+
+    default Enums.Denominacion map(BigDecimal value) {
+        if (value == null) return null;
+        return Enums.Denominacion.fromValor(value.stripTrailingZeros().toPlainString());
+    }
+
+    default BigDecimal map(Enums.Denominacion value) {
+        if (value == null) return null;
+        return new BigDecimal(value.getValor());
+    }
 } 

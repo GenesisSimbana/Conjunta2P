@@ -4,9 +4,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entidad que representa un turno de caja bancaria
- */
 @Entity
 @Table(name = "turnos_caja", schema = "banquito")
 public class TurnoCaja {
@@ -41,16 +38,13 @@ public class TurnoCaja {
     @Column(name = "version")
     private Long version;
 
-    // Constructor vacío
     public TurnoCaja() {
     }
 
-    // Constructor con clave primaria
     public TurnoCaja(String codigoTurno) {
         this.codigoTurno = codigoTurno;
     }
 
-    // Getters y Setters
     public String getCodigoTurno() {
         return codigoTurno;
     }

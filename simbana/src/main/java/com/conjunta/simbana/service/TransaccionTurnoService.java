@@ -36,7 +36,7 @@ public class TransaccionTurnoService {
         if (montoTotal == null || montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("El monto total debe ser mayor a cero", 4001);
         }
-        TurnoCaja turno = validarTurnoAbierto(codigoTurno);
+        validarTurnoAbierto(codigoTurno);
 
         if (denominaciones != null && !denominaciones.isEmpty()) {
             BigDecimal totalDenominaciones = denominaciones.stream()

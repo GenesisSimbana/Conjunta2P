@@ -40,7 +40,6 @@ public class IniciarTurnoDTO {
         this.montoInicial = montoInicial;
     }
 
-    // Getters y Setters
     public String getCodigoTurno() {
         return codigoTurno;
     }
@@ -71,5 +70,15 @@ public class IniciarTurnoDTO {
 
     public void setMontoInicial(BigDecimal montoInicial) {
         this.montoInicial = montoInicial;
+    }
+
+    @Override
+    public String toString() {
+        return "IniciarTurnoDTO{" +
+                "codigoTurno='" + codigoTurno + '\'' +
+                ", codigoCaja='" + codigoCaja + '\'' +
+                ", codigoCajero='" + codigoCajero + '\'' +
+                ", montoInicial=" + montoInicial +
+                '}';
     }
 } 

@@ -1,6 +1,6 @@
 package com.conjunta.simbana.controller.dto;
 
-import com.conjunta.simbana.model.TransaccionTurno.TipoTransaccion;
+import com.conjunta.simbana.model.Enums;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,9 +8,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * DTO para registrar una transacción de turno
- */
 public class RegistrarTransaccionDto {
     
     @NotBlank(message = "El código de caja es obligatorio")
@@ -23,7 +20,7 @@ public class RegistrarTransaccionDto {
     private String codigoTurno;
     
     @NotNull(message = "El tipo de transacción es obligatorio")
-    private TipoTransaccion tipoTransaccion;
+    private Enums.TipoTransaccion tipoTransaccion;
     
     @NotNull(message = "El monto total es obligatorio")
     @DecimalMin(value = "0.01", message = "El monto total debe ser mayor a 0")
@@ -32,21 +29,18 @@ public class RegistrarTransaccionDto {
     @NotNull(message = "Las denominaciones son obligatorias")
     private List<DenominacionTurnoDto> denominaciones;
     
-    // Constructor vacío
     public RegistrarTransaccionDto() {
     }
     
-    // Constructor con parámetros
     public RegistrarTransaccionDto(String codigoCaja, String codigoCajero, String codigoTurno, 
-                                  TipoTransaccion tipoTransaccion, BigDecimal montoTotal) {
+                                  Enums.TipoTransaccion tipoTransaccion, BigDecimal montoTotal) {
         this.codigoCaja = codigoCaja;
         this.codigoCajero = codigoCajero;
         this.codigoTurno = codigoTurno;
         this.tipoTransaccion = tipoTransaccion;
         this.montoTotal = montoTotal;
     }
-    
-    // Getters y Setters
+
     public String getCodigoCaja() {
         return codigoCaja;
     }
@@ -71,11 +65,11 @@ public class RegistrarTransaccionDto {
         this.codigoTurno = codigoTurno;
     }
     
-    public TipoTransaccion getTipoTransaccion() {
+    public Enums.TipoTransaccion getTipoTransaccion() {
         return tipoTransaccion;
     }
     
-    public void setTipoTransaccion(TipoTransaccion tipoTransaccion) {
+    public void setTipoTransaccion(Enums.TipoTransaccion tipoTransaccion) {
         this.tipoTransaccion = tipoTransaccion;
     }
     

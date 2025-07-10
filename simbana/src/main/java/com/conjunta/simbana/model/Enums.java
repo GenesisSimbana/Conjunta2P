@@ -1,31 +1,19 @@
 package com.conjunta.simbana.model;
 
-/**
- * Clase que contiene todos los enums del sistema
- */
 public class Enums {
     
-    /**
-     * Enum para el estado del turno
-     */
     public enum EstadoTurno {
         ABIERTO,
         CERRADO
     }
     
-    /**
-     * Enum para el tipo de transacción
-     */
     public enum TipoTransaccion {
         INICIO,
         AHORRO,
         DEPOSITO,
         CIERRE
     }
-    
-    /**
-     * Enum para las denominaciones de billetes
-     */
+            
     public enum Denominacion {
         UNO("1"),
         CINCO("5"),
