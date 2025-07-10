@@ -1,21 +1,25 @@
 package com.conjunta.simbana.exception;
 
-/**
- * Excepción lanzada cuando se viola una regla de negocio
- */
 public class BusinessException extends RuntimeException {
-    
-    private static final long serialVersionUID = 1L;
-    
+
+    private final Integer errorCode;
+
     public BusinessException(String message) {
         super(message);
+        this.errorCode = 400;
     }
-    
-    public BusinessException(String message, Throwable cause) {
-        super(message, cause);
+
+    public BusinessException(String message, Integer errorCode) {
+        super(message);
+        this.errorCode = errorCode;
     }
-    
-    public BusinessException(String operation, String reason) {
-        super(String.format("No se puede %s: %s", operation, reason));
+
+    @Override
+    public String getMessage() {
+        return "Error code: " + this.errorCode + ", message: " + super.getMessage();
+    }
+
+    public Integer getErrorCode() {
+        return errorCode;
     }
 } 

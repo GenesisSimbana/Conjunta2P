@@ -11,15 +11,9 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Manejador global de excepciones para toda la aplicación
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     
-    /**
-     * Manejador para excepciones de validación
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, Object> response = new HashMap<>();
@@ -40,9 +34,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
     
-    /**
-     * Manejador para BusinessException
-     */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException ex) {
         Map<String, Object> response = new HashMap<>();
@@ -55,9 +46,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
     
-    /**
-     * Manejador para NotFoundException
-     */
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFoundException(NotFoundException ex) {
         Map<String, Object> response = new HashMap<>();
@@ -70,9 +58,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
     
-    /**
-     * Manejador para excepciones generales
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
         Map<String, Object> response = new HashMap<>();

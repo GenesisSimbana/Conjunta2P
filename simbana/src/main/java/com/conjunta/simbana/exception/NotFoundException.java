@@ -1,21 +1,25 @@
 package com.conjunta.simbana.exception;
 
-/**
- * Excepción lanzada cuando no se encuentra un recurso solicitado
- */
 public class NotFoundException extends RuntimeException {
-    
-    private static final long serialVersionUID = 1L;
-    
+
+    private final Integer errorCode;
+
     public NotFoundException(String message) {
         super(message);
+        this.errorCode = 404;
     }
-    
-    public NotFoundException(String message, Throwable cause) {
-        super(message, cause);
+
+    public NotFoundException(String message, Integer errorCode) {
+        super(message);
+        this.errorCode = errorCode;
     }
-    
-    public NotFoundException(String resource, String identifier) {
-        super(String.format("%s no encontrado con identificador: %s", resource, identifier));
+
+    @Override
+    public String getMessage() {
+        return "Error code: " + this.errorCode + ", message: " + super.getMessage();
+    }
+
+    public Integer getErrorCode() {
+        return errorCode;
     }
 } 

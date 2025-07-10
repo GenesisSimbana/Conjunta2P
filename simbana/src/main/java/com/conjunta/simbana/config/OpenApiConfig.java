@@ -10,35 +10,31 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-/**
- * Configuración personalizada para OpenAPI/Swagger
- */
 @Configuration
 public class OpenApiConfig {
-    
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Sistema de Manejo de Efectivo en Ventanillas Bancarias")
-                        .description("API REST para el manejo de efectivo en ventanillas bancarias. " +
-                                   "Permite gestionar turnos de caja, registrar transacciones y " +
-                                   "controlar denominaciones de billetes.")
+                        .title("Sistema de Manejo de Efectivo - API")
+                        .description("API para el manejo de efectivo en ventanillas bancarias. " +
+                                   "Permite gestionar turnos de caja, transacciones y denominaciones.")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Equipo de Desarrollo")
-                                .email("desarrollo@conjunta.com")
-                                .url("https://www.conjunta.com"))
+                                .email("desarrollo@banquito.com")
+                                .url("https://www.banquito.com"))
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
                 .servers(List.of(
                         new Server()
                                 .url("http://localhost:8080")
-                                .description("Servidor de desarrollo"),
+                                .description("Servidor de Desarrollo"),
                         new Server()
-                                .url("https://api.simbana.com")
-                                .description("Servidor de producción")
+                                .url("https://api.banquito.com")
+                                .description("Servidor de Producción")
                 ));
     }
 } 

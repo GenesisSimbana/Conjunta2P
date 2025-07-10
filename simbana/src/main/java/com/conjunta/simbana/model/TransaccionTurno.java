@@ -1,164 +1,161 @@
 package com.conjunta.simbana.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
-
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Entidad que representa una transacción de turno de caja
  */
-@Document(collection = "transacciones_turno")
+@Entity
+@Table(name = "transacciones_turno", schema = "banquito")
 public class TransaccionTurno {
-    
+
     @Id
-    private String id;
-    
-    @Field("transaccion_turno_id")
-    private TransaccionTurnoId transaccionTurnoId;
-    
-    @Field("tipo_transaccion")
-    private TipoTransaccion tipoTransaccion;
-    
-    @Field("monto_total")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Integer id;
+
+    @Column(name = "codigo_turno", length = 30, nullable = false)
+    private String codigoTurno;
+
+    @Column(name = "codigo_caja", length = 10, nullable = false)
+    private String codigoCaja;
+
+    @Column(name = "codigo_cajero", length = 10, nullable = false)
+    private String codigoCajero;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_transaccion", nullable = false)
+    private Enums.TipoTransaccion tipoTransaccion;
+
+    @Column(name = "monto_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal montoTotal;
-    
-    @Field("fecha_transaccion")
-    private LocalDateTime fechaTransaccion;
-    
-    @Field("denominaciones")
-    private List<DenominacionTurno> denominaciones;
-    
+
+    @Column(name = "fecha_hora", nullable = false)
+    private LocalDateTime fechaHora;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
+
+    // Relación con TurnoCaja (hijo a padre)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "codigo_turno", referencedColumnName = "codigo_turno", insertable = false, updatable = false)
+    private TurnoCaja turnoCaja;
+
     // Constructor vacío
     public TransaccionTurno() {
-        this.denominaciones = new ArrayList<>();
     }
-    
+
     // Constructor con clave primaria
-    public TransaccionTurno(TransaccionTurnoId transaccionTurnoId) {
-        this.transaccionTurnoId = transaccionTurnoId;
-        this.denominaciones = new ArrayList<>();
-    }
-    
-    // Constructor completo
-    public TransaccionTurno(TransaccionTurnoId transaccionTurnoId, TipoTransaccion tipoTransaccion, 
-                           BigDecimal montoTotal, List<DenominacionTurno> denominaciones) {
-        this.transaccionTurnoId = transaccionTurnoId;
-        this.tipoTransaccion = tipoTransaccion;
-        this.montoTotal = montoTotal;
-        this.fechaTransaccion = LocalDateTime.now();
-        this.denominaciones = denominaciones != null ? denominaciones : new ArrayList<>();
-    }
-    
-    // Getters y Setters
-    public String getId() {
-        return id;
-    }
-    
-    public void setId(String id) {
+    public TransaccionTurno(Integer id) {
         this.id = id;
     }
-    
-    public TransaccionTurnoId getTransaccionTurnoId() {
-        return transaccionTurnoId;
+
+    // Getters y Setters
+    public Integer getId() {
+        return id;
     }
-    
-    public void setTransaccionTurnoId(TransaccionTurnoId transaccionTurnoId) {
-        this.transaccionTurnoId = transaccionTurnoId;
+
+    public void setId(Integer id) {
+        this.id = id;
     }
-    
-    public TipoTransaccion getTipoTransaccion() {
+
+    public String getCodigoTurno() {
+        return codigoTurno;
+    }
+
+    public void setCodigoTurno(String codigoTurno) {
+        this.codigoTurno = codigoTurno;
+    }
+
+    public String getCodigoCaja() {
+        return codigoCaja;
+    }
+
+    public void setCodigoCaja(String codigoCaja) {
+        this.codigoCaja = codigoCaja;
+    }
+
+    public String getCodigoCajero() {
+        return codigoCajero;
+    }
+
+    public void setCodigoCajero(String codigoCajero) {
+        this.codigoCajero = codigoCajero;
+    }
+
+    public Enums.TipoTransaccion getTipoTransaccion() {
         return tipoTransaccion;
     }
-    
-    public void setTipoTransaccion(TipoTransaccion tipoTransaccion) {
+
+    public void setTipoTransaccion(Enums.TipoTransaccion tipoTransaccion) {
         this.tipoTransaccion = tipoTransaccion;
     }
-    
+
     public BigDecimal getMontoTotal() {
         return montoTotal;
     }
-    
+
     public void setMontoTotal(BigDecimal montoTotal) {
         this.montoTotal = montoTotal;
     }
-    
-    public LocalDateTime getFechaTransaccion() {
-        return fechaTransaccion;
+
+    public LocalDateTime getFechaHora() {
+        return fechaHora;
     }
-    
-    public void setFechaTransaccion(LocalDateTime fechaTransaccion) {
-        this.fechaTransaccion = fechaTransaccion;
+
+    public void setFechaHora(LocalDateTime fechaHora) {
+        this.fechaHora = fechaHora;
     }
-    
-    public List<DenominacionTurno> getDenominaciones() {
-        return denominaciones;
+
+    public Long getVersion() {
+        return version;
     }
-    
-    public void setDenominaciones(List<DenominacionTurno> denominaciones) {
-        this.denominaciones = denominaciones != null ? denominaciones : new ArrayList<>();
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
-    
-    // Método para agregar denominación
-    public void agregarDenominacion(DenominacionTurno denominacion) {
-        if (this.denominaciones == null) {
-            this.denominaciones = new ArrayList<>();
-        }
-        this.denominaciones.add(denominacion);
+
+    public TurnoCaja getTurnoCaja() {
+        return turnoCaja;
     }
-    
-    // Método para calcular el monto total de las denominaciones
-    public BigDecimal calcularMontoTotalDenominaciones() {
-        if (denominaciones == null || denominaciones.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        return denominaciones.stream()
-                .map(DenominacionTurno::getMonto)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    public void setTurnoCaja(TurnoCaja turnoCaja) {
+        this.turnoCaja = turnoCaja;
     }
-    
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        TransaccionTurno that = (TransaccionTurno) obj;
-        return Objects.equals(id, that.id) &&
-               Objects.equals(transaccionTurnoId, that.transaccionTurnoId) &&
-               tipoTransaccion == that.tipoTransaccion &&
-               Objects.equals(montoTotal, that.montoTotal) &&
-               Objects.equals(fechaTransaccion, that.fechaTransaccion) &&
-               Objects.equals(denominaciones, that.denominaciones);
-    }
-    
+
+    // equals y hashCode solo con propiedades de clave primaria
     @Override
     public int hashCode() {
-        return Objects.hash(id, transaccionTurnoId, tipoTransaccion, montoTotal, fechaTransaccion, denominaciones);
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
+        return result;
     }
-    
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TransaccionTurno other = (TransaccionTurno) obj;
+        if (id == null) {
+            if (other.id != null)
+                return false;
+        } else if (!id.equals(other.id))
+            return false;
+        return true;
+    }
+
     @Override
     public String toString() {
-        return "TransaccionTurno{" +
-                "id='" + id + '\'' +
-                ", transaccionTurnoId=" + transaccionTurnoId +
-                ", tipoTransaccion=" + tipoTransaccion +
-                ", montoTotal=" + montoTotal +
-                ", fechaTransaccion=" + fechaTransaccion +
-                ", denominaciones=" + denominaciones +
-                '}';
-    }
-    
-    /**
-     * Enum para el tipo de transacción
-     */
-    public enum TipoTransaccion {
-        INICIO,
-        AHORRO,
-        DEPOSITO,
-        CIERRE
+        return "TransaccionTurno [id=" + id + ", codigoTurno=" + codigoTurno + ", codigoCaja=" + codigoCaja
+                + ", codigoCajero=" + codigoCajero + ", tipoTransaccion=" + tipoTransaccion + ", montoTotal="
+                + montoTotal + ", fechaHora=" + fechaHora + ", version=" + version + "]";
     }
 } 

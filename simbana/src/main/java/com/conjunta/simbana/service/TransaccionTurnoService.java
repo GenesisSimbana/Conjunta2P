@@ -1,130 +1,177 @@
 package com.conjunta.simbana.service;
 
-import com.conjunta.simbana.controller.dto.RegistrarTransaccionDto;
-import com.conjunta.simbana.controller.mapper.DenominacionTurnoMapper;
 import com.conjunta.simbana.exception.BusinessException;
 import com.conjunta.simbana.exception.NotFoundException;
-import com.conjunta.simbana.model.DenominacionTurno;
-import com.conjunta.simbana.model.TransaccionTurno;
-import com.conjunta.simbana.model.TransaccionTurnoId;
-import com.conjunta.simbana.model.TransaccionTurno.TipoTransaccion;
-import com.conjunta.simbana.model.TurnoCaja;
-import com.conjunta.simbana.repository.TransaccionTurnoRepository;
-import com.conjunta.simbana.repository.TurnoCajaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.conjunta.simbana.model.*;
+import com.conjunta.simbana.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
-/**
- * Servicio para gestionar las transacciones de turno
- */
 @Service
 @Transactional
 public class TransaccionTurnoService {
-    
+
     private final TransaccionTurnoRepository transaccionTurnoRepository;
+    private final DenominacionTurnoRepository denominacionTurnoRepository;
     private final TurnoCajaRepository turnoCajaRepository;
-    private final DenominacionTurnoMapper denominacionTurnoMapper;
-    
-    @Autowired
+
     public TransaccionTurnoService(TransaccionTurnoRepository transaccionTurnoRepository,
-                                  TurnoCajaRepository turnoCajaRepository,
-                                  DenominacionTurnoMapper denominacionTurnoMapper) {
+                                  DenominacionTurnoRepository denominacionTurnoRepository,
+                                  TurnoCajaRepository turnoCajaRepository) {
         this.transaccionTurnoRepository = transaccionTurnoRepository;
+        this.denominacionTurnoRepository = denominacionTurnoRepository;
         this.turnoCajaRepository = turnoCajaRepository;
-        this.denominacionTurnoMapper = denominacionTurnoMapper;
     }
-    
-    /**
-     * Registra una nueva transacción de turno
-     */
-    public TransaccionTurno registrarTransaccion(RegistrarTransaccionDto registrarTransaccionDto) {
-        // Validar que el turno exista y esté abierto
-        TurnoCaja turnoCaja = validarTurnoAbierto(registrarTransaccionDto);
-        
-        // Validar que el monto total coincida con la suma de las denominaciones
-        validarMontoTotal(registrarTransaccionDto);
-        
-        // Crear la clave compuesta de la transacción
-        TransaccionTurnoId transaccionTurnoId = new TransaccionTurnoId(
-            registrarTransaccionDto.getCodigoCaja(),
-            registrarTransaccionDto.getCodigoCajero(),
-            registrarTransaccionDto.getCodigoTurno(),
-            UUID.randomUUID().toString()
-        );
-        
-        // Convertir DTOs a entidades
-        List<DenominacionTurno> denominaciones = denominacionTurnoMapper.toEntityList(
-            registrarTransaccionDto.getDenominaciones()
-        );
-        
-        // Crear la transacción
-        TransaccionTurno transaccion = new TransaccionTurno(
-            transaccionTurnoId,
-            registrarTransaccionDto.getTipoTransaccion(),
-            registrarTransaccionDto.getMontoTotal(),
-            denominaciones
-        );
-        
-        // Guardar la transacción
-        return transaccionTurnoRepository.save(transaccion);
+
+    @Transactional
+    public TransaccionTurno registrarTransaccion(String codigoTurno, String codigoCaja, String codigoCajero,
+                                                Enums.TipoTransaccion tipoTransaccion, BigDecimal montoTotal,
+                                                List<DenominacionTransaccion> denominaciones) {
+
+        if (montoTotal == null || montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("El monto total debe ser mayor a cero", 4001);
+        }
+        TurnoCaja turno = validarTurnoAbierto(codigoTurno);
+
+        if (denominaciones != null && !denominaciones.isEmpty()) {
+            BigDecimal totalDenominaciones = denominaciones.stream()
+                    .map(DenominacionTransaccion::getMonto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (totalDenominaciones.compareTo(montoTotal) != 0) {
+                throw new BusinessException("El total de denominaciones (" + totalDenominaciones + 
+                                          ") no coincide con el monto total (" + montoTotal + ")", 4002);
+            }
+        }
+
+        validarTransaccionPorTipo(tipoTransaccion, montoTotal, codigoTurno);
+
+        TransaccionTurno transaccion = new TransaccionTurno();
+        transaccion.setCodigoTurno(codigoTurno);
+        transaccion.setCodigoCaja(codigoCaja);
+        transaccion.setCodigoCajero(codigoCajero);
+        transaccion.setTipoTransaccion(tipoTransaccion);
+        transaccion.setMontoTotal(montoTotal);
+        transaccion.setFechaHora(LocalDateTime.now());
+
+        TransaccionTurno transaccionGuardada = transaccionTurnoRepository.save(transaccion);
+
+        if (denominaciones != null && !denominaciones.isEmpty()) {
+            for (DenominacionTransaccion denominacion : denominaciones) {
+                denominacion.setTransaccionId(transaccionGuardada.getId());
+                denominacionTurnoRepository.save(denominacion);
+            }
+        }
+
+        return transaccionGuardada;
     }
-    
-    /**
-     * Busca transacciones por caja, cajero y turno
-     */
+
     @Transactional(readOnly = true)
-    public List<TransaccionTurno> buscarTransacciones(String codigoCaja, String codigoCajero, String codigoTurno) {
-        return transaccionTurnoRepository.findByCajaCajeroAndTurno(codigoCaja, codigoCajero, codigoTurno);
+    public TransaccionTurno findById(Integer id) {
+        return transaccionTurnoRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("No se encontró la transacción con ID: " + id, 5001));
     }
-    
-    /**
-     * Busca transacciones por tipo
-     */
+
     @Transactional(readOnly = true)
-    public List<TransaccionTurno> buscarTransaccionesPorTipo(String codigoCaja, String codigoCajero, 
-                                                            String codigoTurno, TipoTransaccion tipoTransaccion) {
-        return transaccionTurnoRepository.findByCajaCajeroTurnoAndTipo(codigoCaja, codigoCajero, codigoTurno, tipoTransaccion);
+    public List<TransaccionTurno> findByCodigoTurno(String codigoTurno) {
+        return transaccionTurnoRepository.findByCodigoTurno(codigoTurno);
     }
-    
-    /**
-     * Valida que el turno exista y esté abierto
-     */
-    private TurnoCaja validarTurnoAbierto(RegistrarTransaccionDto dto) {
-        // Buscar el turno
-        var turnoOpt = turnoCajaRepository.findByTurnoCajaId(dto.getCodigoCaja(), dto.getCodigoCajero(), dto.getCodigoTurno());
-        if (turnoOpt.isEmpty()) {
-            throw new NotFoundException("Turno", 
-                String.format("caja: %s, cajero: %s, turno: %s", dto.getCodigoCaja(), dto.getCodigoCajero(), dto.getCodigoTurno()));
-        }
-        
-        TurnoCaja turnoCaja = turnoOpt.get();
-        
-        // Validar que el turno esté abierto
-        if (turnoCaja.getEstado() != TurnoCaja.EstadoTurno.ABIERTO) {
-            throw new BusinessException("registrar transacción", "el turno está cerrado");
-        }
-        
-        return turnoCaja;
+
+    @Transactional(readOnly = true)
+    public List<TransaccionTurno> findByTipoTransaccion(Enums.TipoTransaccion tipoTransaccion) {
+        return transaccionTurnoRepository.findByTipoTransaccion(tipoTransaccion);
     }
-    
-    /**
-     * Valida que el monto total coincida con la suma de las denominaciones
-     */
-    private void validarMontoTotal(RegistrarTransaccionDto dto) {
-        BigDecimal montoCalculado = dto.getDenominaciones().stream()
-                .map(denom -> denom.getDenominacion().multiply(BigDecimal.valueOf(denom.getCantidad())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        if (dto.getMontoTotal().compareTo(montoCalculado) != 0) {
-            throw new BusinessException("registrar transacción", 
-                String.format("el monto total (%s) no coincide con la suma de las denominaciones (%s)", 
-                    dto.getMontoTotal(), montoCalculado));
+
+    @Transactional(readOnly = true)
+    public List<TransaccionTurno> findByTurnoAndTipo(String codigoTurno, Enums.TipoTransaccion tipoTransaccion) {
+        return transaccionTurnoRepository.findByCodigoTurnoAndTipoTransaccion(codigoTurno, tipoTransaccion);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal calcularSaldoTurno(String codigoTurno) {
+        BigDecimal montoInicial = turnoCajaRepository.findById(codigoTurno)
+                .map(TurnoCaja::getMontoInicial)
+                .orElse(BigDecimal.ZERO);
+
+        List<TransaccionTurno> transacciones = transaccionTurnoRepository.findByCodigoTurno(codigoTurno)
+                .stream()
+                .filter(t -> t.getTipoTransaccion() != Enums.TipoTransaccion.INICIO && 
+                           t.getTipoTransaccion() != Enums.TipoTransaccion.CIERRE)
+                .toList();
+
+        BigDecimal saldo = montoInicial;
+
+        for (TransaccionTurno transaccion : transacciones) {
+            switch (transaccion.getTipoTransaccion()) {
+                case DEPOSITO:
+                    saldo = saldo.add(transaccion.getMontoTotal());
+                    break;
+                case AHORRO:
+                    saldo = saldo.subtract(transaccion.getMontoTotal());
+                    break;
+                default:
+                    break;
+            }
         }
+
+        return saldo;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DenominacionTransaccion> getDenominacionesByTransaccion(Integer transaccionId) {
+        return denominacionTurnoRepository.findByTransaccionId(transaccionId);
+    }
+
+    private TurnoCaja validarTurnoAbierto(String codigoTurno) {
+        Optional<TurnoCaja> turnoOptional = turnoCajaRepository.findById(codigoTurno);
+        if (turnoOptional.isEmpty()) {
+            throw new NotFoundException("No se encontró el turno con código: " + codigoTurno, 6001);
+        }
+
+        TurnoCaja turno = turnoOptional.get();
+        if (turno.getEstado() != Enums.EstadoTurno.ABIERTO) {
+            throw new BusinessException("El turno: " + codigoTurno + " no está abierto", 6002);
+        }
+
+        return turno;
+    }
+
+    private void validarTransaccionPorTipo(Enums.TipoTransaccion tipoTransaccion, BigDecimal montoTotal, String codigoTurno) {
+        switch (tipoTransaccion) {
+            case INICIO:
+                throw new BusinessException("No se puede registrar una transacción de INICIO manualmente", 7001);
+            case CIERRE:
+                throw new BusinessException("No se puede registrar una transacción de CIERRE manualmente", 7002);
+            case AHORRO:    
+                BigDecimal saldoActual = calcularSaldoTurno(codigoTurno);
+                if (saldoActual.compareTo(montoTotal) < 0) {
+                    throw new BusinessException("Saldo insuficiente. Saldo actual: " + saldoActual + 
+                                              ", Monto solicitado: " + montoTotal, 7003);
+                }
+                break;
+            case DEPOSITO:
+                break;
+            default:
+                throw new BusinessException("Tipo de transacción no válido: " + tipoTransaccion, 7004);
+        }
+    }
+
+    @Transactional
+    public TransaccionTurno registrarDeposito(String codigoTurno, String codigoCaja, String codigoCajero,
+                                             BigDecimal montoTotal, List<DenominacionTransaccion> denominaciones) {
+        return registrarTransaccion(codigoTurno, codigoCaja, codigoCajero, 
+                                   Enums.TipoTransaccion.DEPOSITO, montoTotal, denominaciones);
+    }
+
+    @Transactional
+    public TransaccionTurno registrarAhorro(String codigoTurno, String codigoCaja, String codigoCajero,
+                                           BigDecimal montoTotal, List<DenominacionTransaccion> denominaciones) {
+        return registrarTransaccion(codigoTurno, codigoCaja, codigoCajero, 
+                                   Enums.TipoTransaccion.AHORRO, montoTotal, denominaciones);
     }
 } 

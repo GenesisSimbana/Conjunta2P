@@ -1,185 +1,157 @@
 package com.conjunta.simbana.service;
 
-import com.conjunta.simbana.controller.dto.DenominacionTurnoDto;
-import com.conjunta.simbana.controller.dto.IniciarTurnoDto;
-import com.conjunta.simbana.controller.mapper.DenominacionTurnoMapper;
 import com.conjunta.simbana.exception.BusinessException;
 import com.conjunta.simbana.exception.NotFoundException;
-import com.conjunta.simbana.model.DenominacionTurno;
 import com.conjunta.simbana.model.TurnoCaja;
-import com.conjunta.simbana.model.TurnoCajaId;
 import com.conjunta.simbana.model.TransaccionTurno;
-import com.conjunta.simbana.model.TransaccionTurnoId;
-import com.conjunta.simbana.model.TransaccionTurno.TipoTransaccion;
+import com.conjunta.simbana.model.Enums;
 import com.conjunta.simbana.repository.TurnoCajaRepository;
 import com.conjunta.simbana.repository.TransaccionTurnoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-/**
- * Servicio para gestionar los turnos de caja
- */
+
 @Service
 @Transactional
 public class TurnoCajaService {
-    
+
     private final TurnoCajaRepository turnoCajaRepository;
     private final TransaccionTurnoRepository transaccionTurnoRepository;
-    private final DenominacionTurnoMapper denominacionTurnoMapper;
-    
-    @Autowired
+
     public TurnoCajaService(TurnoCajaRepository turnoCajaRepository, 
-                           TransaccionTurnoRepository transaccionTurnoRepository,
-                           DenominacionTurnoMapper denominacionTurnoMapper) {
+                           TransaccionTurnoRepository transaccionTurnoRepository) {
         this.turnoCajaRepository = turnoCajaRepository;
         this.transaccionTurnoRepository = transaccionTurnoRepository;
-        this.denominacionTurnoMapper = denominacionTurnoMapper;
     }
-    
-    /**
-     * Inicia un nuevo turno de caja
-     */
-    public TurnoCaja iniciarTurno(IniciarTurnoDto iniciarTurnoDto) {
-        // Validar que no exista un turno abierto para la misma caja y cajero
-        if (turnoCajaRepository.existsByCajaAndCajeroAndEstadoAbierto(
-                iniciarTurnoDto.getCodigoCaja(), iniciarTurnoDto.getCodigoCajero())) {
-            throw new BusinessException("iniciar turno", 
-                "ya existe un turno abierto para la caja " + iniciarTurnoDto.getCodigoCaja() + 
-                " y cajero " + iniciarTurnoDto.getCodigoCajero());
+
+    @Transactional
+    public TurnoCaja iniciarTurno(String codigoTurno, String codigoCaja, String codigoCajero, 
+                                 BigDecimal montoInicial) {
+        
+        if (montoInicial == null || montoInicial.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("El monto inicial debe ser mayor a cero", 1001);
         }
-        
-        // Crear la clave compuesta del turno
-        TurnoCajaId turnoCajaId = new TurnoCajaId(
-            iniciarTurnoDto.getCodigoCaja(),
-            iniciarTurnoDto.getCodigoCajero(),
-            iniciarTurnoDto.getFecha()
-        );
-        
-        // Crear el turno
-        TurnoCaja turnoCaja = new TurnoCaja(
-            turnoCajaId,
-            LocalDateTime.now(),
-            iniciarTurnoDto.getMontoInicial()
-        );
-        
-        // Guardar el turno
-        TurnoCaja turnoCajaGuardado = turnoCajaRepository.save(turnoCaja);
-        
-        // Registrar la transacción de inicio si hay denominaciones iniciales
-        if (iniciarTurnoDto.getDenominacionesIniciales() != null && 
-            !iniciarTurnoDto.getDenominacionesIniciales().isEmpty()) {
-            
-            registrarTransaccionInicio(turnoCajaGuardado, iniciarTurnoDto.getDenominacionesIniciales());
+
+        if (turnoCajaRepository.existsByCodigoCajaAndEstado(codigoCaja, Enums.EstadoTurno.ABIERTO)) {
+            throw new BusinessException("Ya existe un turno abierto para la caja: " + codigoCaja, 1002);
         }
-        
-        return turnoCajaGuardado;
+
+        if (turnoCajaRepository.existsByCodigoCajeroAndEstado(codigoCajero, Enums.EstadoTurno.ABIERTO)) {
+            throw new BusinessException("El cajero: " + codigoCajero + " ya tiene un turno abierto", 1003);
+        }
+
+        TurnoCaja turno = new TurnoCaja(codigoTurno);
+        turno.setCodigoCaja(codigoCaja);
+        turno.setCodigoCajero(codigoCajero);
+        turno.setInicioTurno(LocalDateTime.now());
+        turno.setMontoInicial(montoInicial);
+        turno.setEstado(Enums.EstadoTurno.ABIERTO);
+
+        TurnoCaja turnoGuardado = turnoCajaRepository.save(turno);
+
+        TransaccionTurno transaccionInicio = new TransaccionTurno();
+        transaccionInicio.setCodigoTurno(codigoTurno);
+        transaccionInicio.setCodigoCaja(codigoCaja);
+        transaccionInicio.setCodigoCajero(codigoCajero);
+        transaccionInicio.setTipoTransaccion(Enums.TipoTransaccion.INICIO);
+        transaccionInicio.setMontoTotal(montoInicial);
+        transaccionInicio.setFechaHora(LocalDateTime.now());
+
+        transaccionTurnoRepository.save(transaccionInicio);
+
+        return turnoGuardado;
     }
-    
-    /**
-     * Cierra un turno de caja
-     */
-    public TurnoCaja cerrarTurno(String codigoCaja, String codigoCajero, String fecha, BigDecimal montoFinal) {
-        // Buscar el turno
-        Optional<TurnoCaja> turnoOpt = turnoCajaRepository.findByTurnoCajaId(codigoCaja, codigoCajero, fecha);
-        if (turnoOpt.isEmpty()) {
-            throw new NotFoundException("Turno", 
-                String.format("caja: %s, cajero: %s, fecha: %s", codigoCaja, codigoCajero, fecha));
+
+    @Transactional
+    public TurnoCaja cerrarTurno(String codigoTurno, BigDecimal montoFinal) {
+        
+        Optional<TurnoCaja> turnoOptional = turnoCajaRepository.findById(codigoTurno);
+        if (turnoOptional.isEmpty()) {
+            throw new NotFoundException("No se encontró el turno con código: " + codigoTurno, 2001);
         }
-        
-        TurnoCaja turnoCaja = turnoOpt.get();
-        
-        // Validar que el turno esté abierto
-        if (turnoCaja.getEstado() != TurnoCaja.EstadoTurno.ABIERTO) {
-            throw new BusinessException("cerrar turno", "el turno ya está cerrado");
+
+        TurnoCaja turno = turnoOptional.get();
+
+        if (turno.getEstado() != Enums.EstadoTurno.ABIERTO) {
+            throw new BusinessException("El turno: " + codigoTurno + " no está abierto", 2002);
         }
-        
-        // Calcular el monto esperado basado en las transacciones
-        BigDecimal montoEsperado = calcularMontoEsperado(turnoCaja);
-        
-        // Validar que el monto final coincida con el esperado
+
+        if (montoFinal == null || montoFinal.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException("El monto final debe ser mayor o igual a cero", 2003);
+        }
+
+        BigDecimal montoEsperado = calcularMontoEsperado(codigoTurno);
+
         if (montoFinal.compareTo(montoEsperado) != 0) {
-            // Aquí se podría generar una alerta o registrar la discrepancia
-            throw new BusinessException("cerrar turno", 
-                String.format("el monto final (%s) no coincide con el esperado (%s)", montoFinal, montoEsperado));
+            BigDecimal diferencia = montoFinal.subtract(montoEsperado);
+            System.err.println("ALERTA: Discrepancia en turno " + codigoTurno + 
+                             ". Monto final: " + montoFinal + 
+                             ", Monto esperado: " + montoEsperado + 
+                             ", Diferencia: " + diferencia);
         }
-        
-        // Cerrar el turno
-        turnoCaja.setMontoFinal(montoFinal);
-        turnoCaja.setFechaFin(LocalDateTime.now());
-        turnoCaja.setEstado(TurnoCaja.EstadoTurno.CERRADO);
-        
-        return turnoCajaRepository.save(turnoCaja);
+
+        turno.setFinTurno(LocalDateTime.now());
+        turno.setMontoFinal(montoFinal);
+        turno.setEstado(Enums.EstadoTurno.CERRADO);
+
+        TurnoCaja turnoCerrado = turnoCajaRepository.save(turno);
+
+        TransaccionTurno transaccionCierre = new TransaccionTurno();
+        transaccionCierre.setCodigoTurno(codigoTurno);
+        transaccionCierre.setCodigoCaja(turno.getCodigoCaja());
+        transaccionCierre.setCodigoCajero(turno.getCodigoCajero());
+        transaccionCierre.setTipoTransaccion(Enums.TipoTransaccion.CIERRE);
+        transaccionCierre.setMontoTotal(montoFinal);
+        transaccionCierre.setFechaHora(LocalDateTime.now());
+
+        transaccionTurnoRepository.save(transaccionCierre);
+
+        return turnoCerrado;
     }
-    
-    /**
-     * Busca un turno por su clave compuesta
-     */
+
     @Transactional(readOnly = true)
-    public TurnoCaja buscarTurno(String codigoCaja, String codigoCajero, String fecha) {
-        return turnoCajaRepository.findByTurnoCajaId(codigoCaja, codigoCajero, fecha)
-                .orElseThrow(() -> new NotFoundException("Turno", 
-                    String.format("caja: %s, cajero: %s, fecha: %s", codigoCaja, codigoCajero, fecha)));
+    public TurnoCaja findByCodigoTurno(String codigoTurno) {
+        return turnoCajaRepository.findById(codigoTurno)
+                .orElseThrow(() -> new NotFoundException("No se encontró el turno con código: " + codigoTurno, 3001));
     }
-    
-    /**
-     * Busca turnos abiertos por caja y cajero
-     */
+
     @Transactional(readOnly = true)
-    public List<TurnoCaja> buscarTurnosAbiertos(String codigoCaja, String codigoCajero) {
-        return turnoCajaRepository.findTurnosAbiertosByCajaAndCajero(codigoCaja, codigoCajero);
+    public List<TurnoCaja> findTurnosAbiertosByCaja(String codigoCaja) {
+        return turnoCajaRepository.findByCodigoCajaAndEstado(codigoCaja, Enums.EstadoTurno.ABIERTO);
     }
-    
-    /**
-     * Registra la transacción de inicio del turno
-     */
-    private void registrarTransaccionInicio(TurnoCaja turnoCaja, List<DenominacionTurnoDto> denominacionesDto) {
-        // Convertir DTOs a entidades
-        List<DenominacionTurno> denominaciones = denominacionTurnoMapper.toEntityList(denominacionesDto);
-        
-        // Crear la transacción de inicio
-        TransaccionTurno transaccion = new TransaccionTurno();
-        transaccion.setTransaccionTurnoId(new TransaccionTurnoId(
-            turnoCaja.getTurnoCajaId().getCodigoCaja(),
-            turnoCaja.getTurnoCajaId().getCodigoCajero(),
-            turnoCaja.getTurnoCajaId().getFecha(),
-            UUID.randomUUID().toString()
-        ));
-        transaccion.setTipoTransaccion(TipoTransaccion.INICIO);
-        transaccion.setMontoTotal(turnoCaja.getMontoInicial());
-        transaccion.setDenominaciones(denominaciones);
-        transaccion.setFechaTransaccion(LocalDateTime.now());
-        
-        transaccionTurnoRepository.save(transaccion);
+
+    @Transactional(readOnly = true)
+    public List<TurnoCaja> findTurnosAbiertosByCajero(String codigoCajero) {
+        return turnoCajaRepository.findByCodigoCajeroAndEstado(codigoCajero, Enums.EstadoTurno.ABIERTO);
     }
-    
-    /**
-     * Calcula el monto esperado basado en las transacciones del turno
-     */
-    private BigDecimal calcularMontoEsperado(TurnoCaja turnoCaja) {
-        List<TransaccionTurno> transacciones = transaccionTurnoRepository.findByCajaCajeroAndTurno(
-            turnoCaja.getTurnoCajaId().getCodigoCaja(),
-            turnoCaja.getTurnoCajaId().getCodigoCajero(),
-            turnoCaja.getTurnoCajaId().getFecha()
-        );
-        
-        BigDecimal montoEsperado = turnoCaja.getMontoInicial();
-        
-        for (TransaccionTurno transaccion : transacciones) {
-            if (transaccion.getTipoTransaccion() == TipoTransaccion.DEPOSITO) {
-                montoEsperado = montoEsperado.add(transaccion.getMontoTotal());
-            } else if (transaccion.getTipoTransaccion() == TipoTransaccion.AHORRO) {
-                montoEsperado = montoEsperado.subtract(transaccion.getMontoTotal());
-            }
-        }
-        
-        return montoEsperado;
+
+    @Transactional(readOnly = true)
+    public boolean existsTurnoAbiertoByCaja(String codigoCaja) {
+        return turnoCajaRepository.existsByCodigoCajaAndEstado(codigoCaja, Enums.EstadoTurno.ABIERTO);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsTurnoAbiertoByCajero(String codigoCajero) {
+        return turnoCajaRepository.existsByCodigoCajeroAndEstado(codigoCajero, Enums.EstadoTurno.ABIERTO);
+    }
+
+    private BigDecimal calcularMontoEsperado(String codigoTurno) {
+        BigDecimal montoInicial = turnoCajaRepository.findById(codigoTurno)
+                .map(TurnoCaja::getMontoInicial)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal totalTransacciones = transaccionTurnoRepository.findByCodigoTurno(codigoTurno)
+                .stream()
+                .filter(t -> t.getTipoTransaccion() != Enums.TipoTransaccion.INICIO && 
+                           t.getTipoTransaccion() != Enums.TipoTransaccion.CIERRE)
+                .map(TransaccionTurno::getMontoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return montoInicial.add(totalTransacciones);
     }
 } 

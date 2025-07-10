@@ -1,41 +1,24 @@
 package com.conjunta.simbana.repository;
 
 import com.conjunta.simbana.model.TurnoCaja;
-import com.conjunta.simbana.model.TurnoCajaId;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+import com.conjunta.simbana.model.Enums;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-/**
- * Repositorio para la entidad TurnoCaja
- */
 @Repository
-public interface TurnoCajaRepository extends MongoRepository<TurnoCaja, String> {
-    
-    /**
-     * Busca un turno por su clave compuesta
-     */
-    @Query("{'turnoCajaId.codigoCaja': ?0, 'turnoCajaId.codigoCajero': ?1, 'turnoCajaId.fecha': ?2}")
-    Optional<TurnoCaja> findByTurnoCajaId(String codigoCaja, String codigoCajero, String fecha);
-    
-    /**
-     * Busca turnos abiertos por caja y cajero
-     */
-    @Query("{'turnoCajaId.codigoCaja': ?0, 'turnoCajaId.codigoCajero': ?1, 'estado': 'ABIERTO'}")
-    List<TurnoCaja> findTurnosAbiertosByCajaAndCajero(String codigoCaja, String codigoCajero);
-    
-    /**
-     * Busca turnos por caja, cajero y fecha
-     */
-    @Query("{'turnoCajaId.codigoCaja': ?0, 'turnoCajaId.codigoCajero': ?1, 'turnoCajaId.fecha': ?2}")
-    List<TurnoCaja> findByCajaCajeroAndFecha(String codigoCaja, String codigoCajero, String fecha);
-    
-    /**
-     * Verifica si existe un turno abierto para la caja y cajero especificados
-     */
-    @Query("{'turnoCajaId.codigoCaja': ?0, 'turnoCajaId.codigoCajero': ?1, 'estado': 'ABIERTO'}")
-    boolean existsByCajaAndCajeroAndEstadoAbierto(String codigoCaja, String codigoCajero);
+public interface TurnoCajaRepository extends JpaRepository<TurnoCaja, String> {
+    List<TurnoCaja> findByCodigoCaja(String codigoCaja);
+    List<TurnoCaja> findByCodigoCajero(String codigoCajero);
+    List<TurnoCaja> findByEstado(Enums.EstadoTurno estado);
+    List<TurnoCaja> findByCodigoCajaAndEstado(String codigoCaja, Enums.EstadoTurno estado);
+    List<TurnoCaja> findByCodigoCajeroAndEstado(String codigoCajero, Enums.EstadoTurno estado);
+    List<TurnoCaja> findByInicioTurnoBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    List<TurnoCaja> findByFinTurnoBetweenAndEstado(LocalDateTime fechaInicio, LocalDateTime fechaFin, Enums.EstadoTurno estado);
+    boolean existsByCodigoCajaAndEstado(String codigoCaja, Enums.EstadoTurno estado);
+    boolean existsByCodigoCajeroAndEstado(String codigoCajero, Enums.EstadoTurno estado);
+    List<TurnoCaja> findTop1ByCodigoCajaOrderByInicioTurnoDesc(String codigoCaja);
+    List<TurnoCaja> findTop1ByCodigoCajeroOrderByInicioTurnoDesc(String codigoCajero);
 } 
