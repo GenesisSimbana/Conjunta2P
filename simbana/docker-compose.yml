@@ -1,39 +1,30 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:16
-    container_name: banquito-db
-    environment:
-      POSTGRES_DB: banquito
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  mongo:
+    image: mongo:7.0
+    container_name: mongo_banquito
+    restart: always
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - mongo-data:/data/db
 
-  app:
+  cashbox-service:
     build:
-      context: ./simbana
+      context: .
       dockerfile: Dockerfile
-    container_name: banquito-app
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/banquito
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+    container_name: cashbox_service
     ports:
-      - "8080:8080"
+      - "8082:8082"
+    depends_on:
+      - mongo
+    environment:
+      - SPRING_DATA_MONGODB_HOST=mongo
+      - SPRING_DATA_MONGODB_PORT=27017
+      - SPRING_DATA_MONGODB_DATABASE=banquito_general
+      - SERVER_PORT=8082
     restart: always
 
 volumes:
-  pgdata:
+  mongo-data:

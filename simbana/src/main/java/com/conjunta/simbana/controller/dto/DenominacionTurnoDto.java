@@ -1,70 +1,29 @@
 package com.conjunta.simbana.controller.dto;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
-import java.util.Objects;
 
-/**
- * DTO para DenominacionTurno
- */
+@Data
+@NoArgsConstructor
 public class DenominacionTurnoDto {
-    
-    @NotNull(message = "La denominación es obligatoria")
-    @DecimalMin(value = "0.01", message = "La denominación debe ser mayor a 0")
-    private BigDecimal denominacion;
-    
-    @NotNull(message = "La cantidad es obligatoria")
-    @Min(value = 0, message = "La cantidad debe ser mayor o igual a 0")
-    private Integer cantidad;
-    
-    // Constructor vacío
-    public DenominacionTurnoDto() {
-    }
-    
-    // Constructor con parámetros
-    public DenominacionTurnoDto(BigDecimal denominacion, Integer cantidad) {
-        this.denominacion = denominacion;
-        this.cantidad = cantidad;
-    }
-    
-    // Getters y Setters
-    public BigDecimal getDenominacion() {
-        return denominacion;
-    }
-    
-    public void setDenominacion(BigDecimal denominacion) {
-        this.denominacion = denominacion;
-    }
-    
-    public Integer getCantidad() {
-        return cantidad;
-    }
-    
-    public void setCantidad(Integer cantidad) {
-        this.cantidad = cantidad;
-    }
-    
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        DenominacionTurnoDto that = (DenominacionTurnoDto) obj;
-        return Objects.equals(denominacion, that.denominacion) &&
-               Objects.equals(cantidad, that.cantidad);
-    }
-    
-    @Override
-    public int hashCode() {
-        return Objects.hash(denominacion, cantidad);
-    }
-    
-    @Override
-    public String toString() {
-        return "DenominacionTurnoDto{" +
-                "denominacion=" + denominacion +
-                ", cantidad=" + cantidad +
-                '}';
-    }
+    @Schema(description = "ID único de la denominación")
+    private String id;
+
+    @Schema(description = "ID de la transacción")
+    private String transaccionId;
+
+    @Min(value = 1, message = "El valor del billete debe ser mayor a 0")
+    private int billete;
+
+    @Min(value = 0, message = "La cantidad no puede ser negativa")
+    private int cantidad;
+
+    @DecimalMin(value = "0.0", message = "El monto no puede ser negativo")
+    private BigDecimal monto;
+
+    @Schema(description = "Versión del documento")
+    private Long version;
 } 

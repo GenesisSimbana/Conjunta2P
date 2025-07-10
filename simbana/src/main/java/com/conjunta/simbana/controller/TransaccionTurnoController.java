@@ -62,7 +62,6 @@ public class TransaccionTurnoController {
                    transaccionTurnoDTO.getCodigoTurno(), transaccionTurnoDTO.getTipoTransaccion());
 
         try {
-            // Convertir DTOs de denominaciones a entidades
             List<DenominacionTransaccion> denominaciones = null;
             if (transaccionTurnoDTO.getDenominaciones() != null && !transaccionTurnoDTO.getDenominaciones().isEmpty()) {
                 denominaciones = new ArrayList<>(transaccionTurnoDTO.getDenominaciones().size());
@@ -110,7 +109,6 @@ public class TransaccionTurnoController {
                    transaccionTurnoDTO.getCodigoTurno(), transaccionTurnoDTO.getMontoTotal());
 
         try {
-            // Convertir DTOs de denominaciones a entidades
             List<DenominacionTransaccion> denominaciones = null;
             if (transaccionTurnoDTO.getDenominaciones() != null && !transaccionTurnoDTO.getDenominaciones().isEmpty()) {
                 denominaciones = new ArrayList<>(transaccionTurnoDTO.getDenominaciones().size());
@@ -154,8 +152,7 @@ public class TransaccionTurnoController {
         logger.info("Registrando ahorro para turno: {}, monto: {}", 
                    transaccionTurnoDTO.getCodigoTurno(), transaccionTurnoDTO.getMontoTotal());
 
-        try {
-            // Convertir DTOs de denominaciones a entidades
+        try {   
             List<DenominacionTransaccion> denominaciones = null;
             if (transaccionTurnoDTO.getDenominaciones() != null && !transaccionTurnoDTO.getDenominaciones().isEmpty()) {
                 denominaciones = new ArrayList<>(transaccionTurnoDTO.getDenominaciones().size());

@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 class SimbanaApplicationTests {
 
-    @Test
-    void contextLoads() {
+	@Test
+	void contextLoads() {
         // Verifica que el contexto de Spring se carga correctamente
     }
 
